@@ -77,8 +77,8 @@ async def send_request(encrypted_uid, token, url):
         }
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=bytes.fromhex(encrypted_uid), headers=headers) as response:
+                app.logger.info(f"Request to {url} returned {response.status}")
                 if response.status != 200:
-                    app.logger.error(f"Request failed with status {response.status}")
                     return None
                 return await response.text()
     except Exception as e:
@@ -137,7 +137,17 @@ def make_request(encrypt, server_name, token):
             'Authorization': f"Bearer {token}",
             'Content-Type': "application/x-www-form-urlencoded",
         }
+
+        app.logger.info(f"Making request to {url} with token {token[:6]}... and UID {encrypt}")
+
         response = requests.post(url, data=bytes.fromhex(encrypt), headers=headers, verify=False)
+        
+        # Log response details
+        app.logger.info(f"Response Code: {response.status_code}, Response Text: {response.text[:100]}")
+
+        if response.status_code != 200:
+            return None
+
         return decode_protobuf(response.content.hex())
     except Exception as e:
         app.logger.error(f"Error in make_request: {e}")
